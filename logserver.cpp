@@ -4,6 +4,8 @@
 // Binds REP socket to tcp://*:5555
 //
 
+// std::map
+#include <map>
 // std::string
 #include <string>
 // std::ofstream
@@ -37,12 +39,18 @@ void reply() {
 }
 
 
+// Log levels
+std::map<int, char> logLevels {
+    {1, 'D'}, {2, 'V'}, {3, 'I'}, {4, 'W'}, {5, 'E'}, {6, 'C'}
+};
+
+
 void log_(std::string json) {
     bool parsingSuccessful = reader.parse(json, msg_);
     if (parsingSuccessful) {
-        // TODO: replace I with the relevant level's char
-        logfile << "I::" << msg_["dt"].asString() << "::"
-            << msg_["pid"].asString() << "::"
+        logfile << logLevels[msg_["level"].asInt()] << "::"
+            << msg_["dt"].asString()
+            << "::" << msg_["pid"].asString() << "::"
             << msg_["thrNum"] << "::"
             << msg_["text"].asString() << "\n";
     } else {

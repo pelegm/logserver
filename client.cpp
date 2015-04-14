@@ -45,13 +45,12 @@ std::string formattedNow() {
 }
 
 
-// TODO: write a general log function which generalizes "info", "warning", etc.
-void info(std::string text) {
+void log_(int level, std::string text) {
     zmq::context_t context(1);
     zmq::socket_t socket(context, ZMQ_REQ);
     socket.connect("tcp://localhost:5555");
     Json::Value msg_;
-    msg_["level"] = 1;
+    msg_["level"] = level;
     msg_["dt"] = formattedNow();
     msg_["pid"] = pid;
     msg_["text"] = text;
@@ -72,13 +71,42 @@ void info(std::string text) {
     // TODO: should we close the socket..?
 }
 
+void debug(std::string text) {
+    log_(1, text);
+}
+void verbose(std::string text) {
+    log_(2, text);
+}
+void info(std::string text) {
+    log_(3, text);
+}
+void warning(std::string text) {
+    log_(4, text);
+}
+void error(std::string text) {
+    log_(5, text);
+}
+void critical(std::string text) {
+    log_(6, text);
+}
+
 
 int main ()
 {
     //  Do 100 log requests, waiting each time for a response
     for (int request_nbr = 0; request_nbr != 100; request_nbr++) {
-        std::thread t(&info, "bla bla");
-        t.detach();
+        std::thread t1(&debug, "debug");
+        t1.detach();
+        std::thread t2(&verbose, "verbose");
+        t2.detach();
+        std::thread t3(&info, "info");
+        t3.detach();
+        std::thread t4(&warning, "warning");
+        t4.detach();
+        std::thread t5(&error, "error");
+        t5.detach();
+        std::thread t6(&critical, "critical");
+        t6.detach();
     }
     return 0;
 }
