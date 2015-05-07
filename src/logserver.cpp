@@ -14,6 +14,8 @@
 #include <zmq.hpp>
 // Json::Reader Json::Value
 #include "json/json.h"
+// Command line arguments
+#include <tclap/CmdLine.h>
 
 
 zmq::context_t context(1);
@@ -61,11 +63,53 @@ void log_(std::string json) {
 }
 
 
-int main() {
-    socket.bind("tcp://*:5555");
+void log_(char const * msg) {
+    logfile << msg << "\n";
+    logfile.flush();
+}
 
-    // TODO: make this a command line argument
-    logfile.open("test.log");
+
+int main(int argc, const char * argv[]) {
+    // ----- Command line arguments via TCLAP ----- //
+    // The constructors arguments are message, delimiter and version
+    TCLAP::CmdLine cmd("LOG SERVER", ' ', "0.1"); 
+
+    // The -V argument is for "print version and exit"
+    // ValueArg signature:
+    // - const std::string &flag
+    // - const std::string &name
+    // - const std::string &desc
+    // - bool req
+    // - T value
+    // - const std::string &typeDesc
+    // - CmdLineInterface &parser
+
+    // The -p/--port argument is for the listening port
+    TCLAP::ValueArg<std::string> portArg("p", "port", "port", false, "5555",
+            "####");
+
+    // The -o/--output argument is for the location of the logfile
+    TCLAP::ValueArg<std::string> outputArg("o", "output", "output", true, "",
+            "xxx.log");
+
+    // Add arguments
+    // We do it here rather in the constructors, in order to control the order
+    // in the help text, which is the reverse of the following
+    cmd.add(outputArg);
+    cmd.add(portArg);
+
+    // Parse command line arguments, and fetch the rest from Redis
+    cmd.parse(argc, argv);
+    std::string port = portArg.getValue();
+    std::string output = outputArg.getValue();
+
+    socket.bind(("tcp://*:" + port).c_str());
+
+    // Append to an existing log file
+    logfile.open(output.c_str(), std::fstream::out | std::fstream::app);
+
+    // Log start
+    log_("Start logging...");
 
     // TODO: handle ctrl-c properly
     // http://zguide.zeromq.org/php:chapter2#Handling-Interrupt-Signals
