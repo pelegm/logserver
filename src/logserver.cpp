@@ -8,6 +8,8 @@
 #include <map>
 // std::string
 #include <string>
+// std::cout
+#include <iostream>
 // std::ofstream
 #include <fstream>
 // zmq::context_t zmq::socket_t zmq::message_t
@@ -16,6 +18,8 @@
 #include "json/json.h"
 // Command line arguments
 #include <tclap/CmdLine.h>
+// Interrupt signal handling
+#include <signal.h>
 
 
 zmq::context_t context(1);
@@ -28,10 +32,28 @@ Json::Value msg_;
 
 std::ofstream logfile;
 
+// Interrupt signal handler
+static int s_interrupted = 0;
+static void s_signal_handler (int signal_value)
+{
+    s_interrupted = 1;
+}
+
 
 std::string recv() {
     socket.recv(&req);
     return std::string(static_cast<char*>(req.data()), req.size());
+}
+
+
+static void s_catch_signals (void)
+{
+    struct sigaction action;
+    action.sa_handler = s_signal_handler;
+    action.sa_flags = 0;
+    sigemptyset (&action.sa_mask);
+    sigaction (SIGINT, &action, NULL);
+    sigaction (SIGTERM, &action, NULL);
 }
 
 
@@ -109,14 +131,25 @@ int main(int argc, const char * argv[]) {
     logfile.open(output.c_str(), std::fstream::out | std::fstream::app);
 
     // Log start
-    log_("Start logging...");
+    log_(">>> Start logging <<<");
+    std::cout << "Listening on port " << port << "\n";
 
-    // TODO: handle ctrl-c properly
-    // http://zguide.zeromq.org/php:chapter2#Handling-Interrupt-Signals
+    s_catch_signals();
     while (true) {
-        std::string req = recv();
-        reply();
-        log_(req);
+        try {
+            std::string req = recv();
+            reply();
+            log_(req);
+        }
+        catch(zmq::error_t& e) {
+            logfile << "E :: interrupt received, proceeding..." << "\n";
+        }
+        if (s_interrupted) {
+            logfile << "E :: interrupt received, killing server..." <<
+                "\n" << ">>> Stop logging <<<" << "\n";
+            std::cout << "interrupt received, killing server..." << "\n";
+            break;
+        }
     }
 
     logfile.close();
