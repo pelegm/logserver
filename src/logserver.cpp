@@ -50,10 +50,10 @@ std::map<int, char> logLevels {
 void log_(std::string json) {
     bool parsingSuccessful = reader.parse(json, msg_);
     if (parsingSuccessful) {
-        logfile << logLevels[msg_["level"].asInt()] << "::"
+        logfile << logLevels[msg_["level"].asInt()] << " :: "
             << msg_["dt"].asString()
-            << "::" << msg_["pid"].asString() << "::"
-            << msg_["thrNum"] << "::"
+            << " :: " << msg_["pid"].asString() << " :: "
+            << msg_["thrNum"] << " :: "
             << msg_["text"].asString() << "\n";
     } else {
         logfile << "-----";
